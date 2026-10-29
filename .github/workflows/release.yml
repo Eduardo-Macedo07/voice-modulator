@@ -27,5 +27,5 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "Voice Modulator ${{ github.ref_name }}"
           releaseBody: "Download **voice-modulator_*_x64-setup.exe** below and run it. Windows may show a SmartScreen warning because the app is not code-signed yet: click *More info* → *Run anyway*."
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
