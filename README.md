@@ -8,6 +8,8 @@
 
 A free, open-source desktop voice changer for Windows. It processes your microphone in real time, so you can sound like a robot, a squirrel or a demon in Discord, WhatsApp Web, games and more.
 
+<!-- TODO: add a screenshot, e.g. ![Voice Modulator](docs/screenshot.png) -->
+
 ### Download
 
 1. Go to the [latest release](https://github.com/Eduardo-Macedo07/voice-modulator/releases/latest).
@@ -54,7 +56,7 @@ Planned: recording and export (WebM and WAV).
 
 ### License
 
-[MIT](LICENSE)
+[MIT](LICENSE) · [Code of conduct](CODE_OF_CONDUCT.md) · [Code signing policy (draft)](docs/code-signing-policy.md)
 
 ---
 
@@ -108,4 +110,4 @@ Planejado: gravação e exportação (WebM e WAV).
 
 ### Licença
 
-[MIT](LICENSE)
+[MIT](LICENSE) · [Código de conduta](CODE_OF_CONDUCT.md) · [Política de assinatura de código (rascunho)](docs/code-signing-policy.md)
