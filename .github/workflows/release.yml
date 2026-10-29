@@ -26,6 +26,6 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Voice Modulator ${{ github.ref_name }}"
-          releaseBody: "Download **voice-modulator_*_x64-setup.exe** below and run it. Windows may show a SmartScreen warning because the app is not code-signed yet: click *More info* → *Run anyway*."
+          releaseBody: "Download **voice-modulator_*_x64-setup.exe** below and run it. The installer is not code-signed yet. If SmartScreen warns, click *More info* → *Run anyway*. If Windows 11 Smart App Control blocks it, there is no bypass: turn Smart App Control off, or run the app from source (see the README)."
           releaseDraft: false
           prerelease: false
