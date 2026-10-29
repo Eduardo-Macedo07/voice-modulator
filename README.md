@@ -13,7 +13,10 @@ A free, open-source desktop voice changer for Windows. It processes your microph
 1. Go to the [latest release](https://github.com/Eduardo-Macedo07/voice-modulator/releases/latest).
 2. Download `voice-modulator_x.y.z_x64-setup.exe` and run it.
 
-Windows may show a SmartScreen warning because the app is not code-signed yet: click **More info → Run anyway**.
+The installer is not code-signed yet, so Windows may warn or block it:
+
+- **SmartScreen warning**: click **More info → Run anyway**.
+- **"Smart App Control blocked this app"** (Windows 11): this protection has no "run anyway" option. Either turn it off in *Windows Security → App & browser control → Smart App Control settings → Off* (on some Windows 11 versions this cannot be undone without reinstalling Windows, so read the warning on screen first), or skip the installer and [run the app from source](#development).
 
 ### Features
 
@@ -64,7 +67,10 @@ Um modulador de voz para desktop (Windows), gratuito e de código aberto. Ele pr
 1. Abra a [última versão (release)](https://github.com/Eduardo-Macedo07/voice-modulator/releases/latest).
 2. Baixe o arquivo `voice-modulator_x.y.z_x64-setup.exe` e execute.
 
-O Windows pode mostrar um aviso do SmartScreen, porque o app ainda não tem assinatura de código: clique em **Mais informações → Executar assim mesmo**.
+O instalador ainda não tem assinatura de código, então o Windows pode avisar ou bloquear:
+
+- **Aviso do SmartScreen**: clique em **Mais informações → Executar assim mesmo**.
+- **"O Controle Inteligente de Aplicativos bloqueou este app"** (Windows 11): essa proteção não tem a opção "executar assim mesmo". Ou você a desativa em *Segurança do Windows → Controle de aplicativos e navegador → Configurações do Controle Inteligente de Aplicativos → Desativado* (em algumas versões do Windows 11 isso não pode ser desfeito sem reinstalar o Windows, então leia o aviso na tela antes), ou ignora o instalador e [roda o app pelo código-fonte](#desenvolvimento).
 
 ### Recursos
 
