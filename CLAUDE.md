@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Not scaffolded yet. The stack and architecture below are agreed with the owner; update this file (especially Commands) once `npm create tauri-app` has run and the real scripts exist.
+Scaffolded from the `create-tauri-app` react-ts template; no audio code yet. The architecture below is agreed with the owner but not built. `npm test` and `npm run lint` don't exist until Vitest/ESLint are added; update Commands when they are.
 
 ## What this is
 
