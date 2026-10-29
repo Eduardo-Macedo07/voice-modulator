@@ -3,6 +3,8 @@ export const SMOOTHING_SECONDS = 0.02;
 /**
  * Base for effects that can be bypassed without rebuilding the graph.
  * Subclasses connect `input` → processing → `wet`.
+ * A replacing effect (pitch, distortion…) swaps dry for wet; an additive one (echo, reverb)
+ * keeps the dry signal and only fades its wet layer in.
  */
 export abstract class Effect {
   readonly input: GainNode;
@@ -10,7 +12,10 @@ export abstract class Effect {
   private readonly dry: GainNode;
   protected readonly wet: GainNode;
 
-  constructor(protected readonly ctx: AudioContext) {
+  constructor(
+    protected readonly ctx: AudioContext,
+    private readonly additive = false,
+  ) {
     this.input = ctx.createGain();
     this.output = ctx.createGain();
     this.dry = ctx.createGain();
@@ -22,7 +27,7 @@ export abstract class Effect {
   }
 
   setEnabled(on: boolean): void {
-    this.ramp(this.dry.gain, on ? 0 : 1);
+    if (!this.additive) this.ramp(this.dry.gain, on ? 0 : 1);
     this.ramp(this.wet.gain, on ? 1 : 0);
   }
 
