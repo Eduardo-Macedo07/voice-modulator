@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AudioEngine, NO_OUTPUT, listDevices, type AudioDevice } from "./audio/engine";
 import { DEFAULT_SETTINGS, type VoiceSettings } from "./audio/settings";
+import { VB_CABLE_URL, findVirtualCable } from "./audio/virtualCable";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Visualizer } from "./components/Visualizer";
 import { PRESETS } from "./presets";
 import "./App.css";
@@ -22,6 +24,10 @@ function App() {
   const [preset, setPreset] = useState("Normal");
   const [error, setError] = useState<string | null>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+  // Output device labels stay empty until the user has granted mic permission.
+  const [labelsKnown, setLabelsKnown] = useState(false);
+  const autoSelectedCable = useRef(false);
+  const cable = findVirtualCable(outputs);
 
   const refreshDevices = useCallback(async () => {
     const [i, o] = await Promise.all([listDevices("audioinput"), listDevices("audiooutput")]);
@@ -31,10 +37,21 @@ function App() {
 
   useEffect(() => {
     refreshDevices().catch(() => {});
+    // Fires when the virtual cable driver is installed while the app is open.
+    navigator.mediaDevices.addEventListener("devicechange", refreshDevices);
     return () => {
+      navigator.mediaDevices.removeEventListener("devicechange", refreshDevices);
       engine.stop();
     };
   }, [engine, refreshDevices]);
+
+  // Send to the virtual cable the first time it shows up; after that the user's choice wins.
+  useEffect(() => {
+    if (!cable || autoSelectedCable.current) return;
+    autoSelectedCable.current = true;
+    setOutputId(cable.deviceId);
+    engine.setOutputDevice(cable.deviceId).catch((e) => setError(e instanceof Error ? e.message : String(e)));
+  }, [cable, engine]);
 
   async function run(action: () => Promise<void>) {
     setError(null);
@@ -56,6 +73,7 @@ function App() {
       }
       setAnalyser(engine.analyser);
       setRunning(true);
+      setLabelsKnown(true);
       // Device labels are only available after the user grants mic permission.
       await refreshDevices();
     });
@@ -167,6 +185,27 @@ function App() {
           </label>
         </div>
       </section>
+
+      {labelsKnown && !cable && (
+        <section className="panel setup">
+          <strong>Use your voice in Discord, WhatsApp Web, games…</strong>
+          <p>
+            Other apps need a virtual microphone, and Windows needs a small driver for that. The free VB-Cable
+            provides one:
+          </p>
+          <ol>
+            <li>Download VB-Cable and run the installer as administrator.</li>
+            <li>Come back here: it is detected automatically and selected as the output.</li>
+            <li>In Discord (or any app), choose "CABLE Output" as the microphone.</li>
+          </ol>
+          <button onClick={() => openUrl(VB_CABLE_URL).catch((e) => setError(String(e)))}>Download VB-Cable</button>
+        </section>
+      )}
+      {cable && (
+        <p className="hint ok">
+          Virtual microphone ready: in other apps, choose "CABLE Output" as the microphone.
+        </p>
+      )}
 
       <section className="panel">
         <label>

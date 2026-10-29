@@ -127,3 +127,18 @@ button.chip.active {
   background: #4f46e5;
   border-color: #4f46e5;
 }
+
+.setup p,
+.setup ol {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #aab0bf;
+}
+
+.setup ol {
+  padding-left: 20px;
+}
+
+.hint.ok {
+  color: #34d399;
+}
