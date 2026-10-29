@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Mic capture, visualizer, pitch/robot/EQ effects, presets and output/monitor device selection are built. Distortion, bitcrusher, echo, reverb, recording/export and the Rust file-saving side are not yet. Vitest is set up (`npm test`); ESLint/Prettier are not, so `npm run lint` does not exist yet.
+Mic capture, visualizer, all effects (pitch, robot, distortion, bitcrusher, echo, reverb, EQ), presets, output/monitor device selection and the VB-Cable setup guide are built. Recording/export and the Rust file-saving side are not yet. Vitest is set up (`npm test`); ESLint/Prettier are not, so `npm run lint` does not exist yet.
 
 ## What this is
 
