@@ -1,5 +1,9 @@
+import { BitcrusherEffect } from "./effects/bitcrusher";
+import { DistortionEffect } from "./effects/distortion";
+import { EchoEffect } from "./effects/echo";
 import { Equalizer } from "./effects/equalizer";
 import { PitchEffect } from "./effects/pitch";
+import { ReverbEffect } from "./effects/reverb";
 import { RobotEffect } from "./effects/robot";
 import { DEFAULT_SETTINGS, type VoiceSettings } from "./settings";
 
@@ -26,7 +30,11 @@ interface Graph {
   source: MediaStreamAudioSourceNode;
   pitch: PitchEffect;
   robot: RobotEffect;
+  distortion: DistortionEffect;
+  bitcrusher: BitcrusherEffect;
   eq: Equalizer;
+  echo: EchoEffect;
+  reverb: ReverbEffect;
   master: GainNode;
   analyser: AnalyserNode;
   out: GainNode;
@@ -35,9 +43,9 @@ interface Graph {
 }
 
 /**
- * Mic → Pitch → Robot → EQ → Master ─┬→ Analyser
- *                                    ├→ Out → ctx.destination (output device, e.g. a virtual cable)
- *                                    └→ Monitor → <audio> (monitor device, e.g. headphones)
+ * Mic → Pitch → Robot → Distortion → Bitcrusher → EQ → Echo → Reverb → Master ─┬→ Analyser
+ *                                                                              ├→ Out → ctx.destination (output device, e.g. a virtual cable)
+ *                                                                              └→ Monitor → <audio> (monitor device, e.g. headphones)
  */
 export class AudioEngine {
   private graph: Graph | null = null;
@@ -65,12 +73,16 @@ export class AudioEngine {
 
     try {
       const ctx = new AudioContext({ latencyHint: "interactive" });
-      await PitchEffect.load(ctx);
+      await Promise.all([PitchEffect.load(ctx), BitcrusherEffect.load(ctx)]);
 
       const source = ctx.createMediaStreamSource(stream);
       const pitch = new PitchEffect(ctx);
       const robot = new RobotEffect(ctx);
+      const distortion = new DistortionEffect(ctx);
+      const bitcrusher = new BitcrusherEffect(ctx);
       const eq = new Equalizer(ctx);
+      const echo = new EchoEffect(ctx);
+      const reverb = new ReverbEffect(ctx);
       const master = ctx.createGain();
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 2048;
@@ -83,13 +95,28 @@ export class AudioEngine {
 
       source.connect(pitch.input);
       pitch.output.connect(robot.input);
-      robot.output.connect(eq.input);
-      eq.output.connect(master);
+      robot.output.connect(distortion.input);
+      distortion.output.connect(bitcrusher.input);
+      bitcrusher.output.connect(eq.input);
+      eq.output.connect(echo.input);
+      echo.output.connect(reverb.input);
+      reverb.output.connect(master);
       master.connect(analyser);
       master.connect(out).connect(ctx.destination);
       master.connect(monitor).connect(monitorDest);
 
-      this.graph = { ctx, stream, source, pitch, robot, eq, master, analyser, out, monitor, monitorAudio };
+      this.graph = {
+        ctx,
+        stream,
+        source,
+        pitch,
+        robot,
+        distortion,
+        bitcrusher,
+        eq,
+        echo,
+        reverb,
+        master, analyser, out, monitor, monitorAudio };
 
       master.gain.value = this.masterLevel;
       monitor.gain.value = this.monitoring ? 1 : 0;
@@ -121,6 +148,18 @@ export class AudioEngine {
     g.pitch.setSemitones(settings.pitch.semitones);
     g.robot.setEnabled(settings.robot.enabled);
     g.robot.setFrequency(settings.robot.frequency);
+    g.distortion.setEnabled(settings.distortion.enabled);
+    g.distortion.setAmount(settings.distortion.amount);
+    g.bitcrusher.setEnabled(settings.bitcrusher.enabled);
+    g.bitcrusher.setBits(settings.bitcrusher.bits);
+    g.bitcrusher.setReduction(settings.bitcrusher.reduction);
+    g.echo.setEnabled(settings.echo.enabled);
+    g.echo.setTime(settings.echo.time);
+    g.echo.setFeedback(settings.echo.feedback);
+    g.echo.setMix(settings.echo.mix);
+    g.reverb.setEnabled(settings.reverb.enabled);
+    g.reverb.setSize(settings.reverb.size);
+    g.reverb.setMix(settings.reverb.mix);
     g.eq.setBass(settings.eq.bass);
     g.eq.setTreble(settings.eq.treble);
   }
