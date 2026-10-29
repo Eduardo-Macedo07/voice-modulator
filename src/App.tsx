@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AudioEngine, listInputDevices, type InputDevice } from "./audio/engine";
+import { AudioEngine, NO_OUTPUT, listDevices, type AudioDevice } from "./audio/engine";
+import { DEFAULT_SETTINGS, type VoiceSettings } from "./audio/settings";
 import { Visualizer } from "./components/Visualizer";
+import { PRESETS } from "./presets";
 import "./App.css";
 
 function App() {
@@ -8,16 +10,23 @@ function App() {
   if (!engineRef.current) engineRef.current = new AudioEngine();
   const engine = engineRef.current;
 
-  const [devices, setDevices] = useState<InputDevice[]>([]);
-  const [deviceId, setDeviceId] = useState("");
+  const [inputs, setInputs] = useState<AudioDevice[]>([]);
+  const [outputs, setOutputs] = useState<AudioDevice[]>([]);
+  const [inputId, setInputId] = useState("");
+  const [outputId, setOutputId] = useState(NO_OUTPUT);
+  const [monitorId, setMonitorId] = useState("");
   const [running, setRunning] = useState(false);
   const [monitoring, setMonitoring] = useState(false);
   const [gain, setGain] = useState(1);
+  const [settings, setSettings] = useState<VoiceSettings>(DEFAULT_SETTINGS);
+  const [preset, setPreset] = useState("Normal");
   const [error, setError] = useState<string | null>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
   const refreshDevices = useCallback(async () => {
-    setDevices(await listInputDevices());
+    const [i, o] = await Promise.all([listDevices("audioinput"), listDevices("audiooutput")]);
+    setInputs(i);
+    setOutputs(o);
   }, []);
 
   useEffect(() => {
@@ -27,40 +36,52 @@ function App() {
     };
   }, [engine, refreshDevices]);
 
-  async function start(id = deviceId) {
+  async function run(action: () => Promise<void>) {
     setError(null);
     try {
-      await engine.start(id || undefined);
-      setAnalyser(engine.analyser);
-      setRunning(true);
-      // Labels are only available after the user grants mic permission.
-      await refreshDevices();
+      await action();
     } catch (e) {
-      setRunning(false);
-      setAnalyser(null);
       setError(e instanceof Error ? e.message : String(e));
     }
   }
 
-  async function stop() {
-    await engine.stop();
-    setAnalyser(null);
-    setRunning(false);
+  const start = (id = inputId) =>
+    run(async () => {
+      try {
+        await engine.start(id || undefined);
+      } catch (e) {
+        setRunning(false);
+        setAnalyser(null);
+        throw e;
+      }
+      setAnalyser(engine.analyser);
+      setRunning(true);
+      // Device labels are only available after the user grants mic permission.
+      await refreshDevices();
+    });
+
+  const stop = () =>
+    run(async () => {
+      await engine.stop();
+      setAnalyser(null);
+      setRunning(false);
+    });
+
+  function update(next: VoiceSettings) {
+    setSettings(next);
+    engine.applySettings(next);
   }
 
-  function changeDevice(id: string) {
-    setDeviceId(id);
-    if (running) start(id);
+  function choosePreset(name: string) {
+    setPreset(name);
+    const found = PRESETS.find((p) => p.name === name);
+    if (found) update(found.settings);
   }
 
-  function toggleMonitoring(on: boolean) {
-    setMonitoring(on);
-    engine.setMonitoring(on);
-  }
-
-  function changeGain(value: number) {
-    setGain(value);
-    engine.setMasterGain(value);
+  /** Manual tweaks leave the preset behind. */
+  function tweak(next: VoiceSettings) {
+    setPreset("Custom");
+    update(next);
   }
 
   return (
@@ -69,18 +90,154 @@ function App() {
 
       <Visualizer analyser={analyser} />
 
-      <section className="controls">
+      <section className="panel">
+        <div className="presets">
+          {PRESETS.map((p) => (
+            <button
+              key={p.name}
+              className={p.name === preset ? "chip active" : "chip"}
+              onClick={() => choosePreset(p.name)}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="effect">
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={settings.pitch.enabled}
+              onChange={(e) => tweak({ ...settings, pitch: { ...settings.pitch, enabled: e.currentTarget.checked } })}
+            />
+            Pitch: {settings.pitch.semitones > 0 ? "+" : ""}
+            {settings.pitch.semitones} semitones
+          </label>
+          <input
+            type="range"
+            min={-12}
+            max={12}
+            step={1}
+            value={settings.pitch.semitones}
+            onChange={(e) => tweak({ ...settings, pitch: { enabled: true, semitones: Number(e.currentTarget.value) } })}
+          />
+        </div>
+
+        <div className="effect">
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={settings.robot.enabled}
+              onChange={(e) => tweak({ ...settings, robot: { ...settings.robot, enabled: e.currentTarget.checked } })}
+            />
+            Robot: {settings.robot.frequency} Hz
+          </label>
+          <input
+            type="range"
+            min={20}
+            max={200}
+            step={1}
+            value={settings.robot.frequency}
+            onChange={(e) => tweak({ ...settings, robot: { enabled: true, frequency: Number(e.currentTarget.value) } })}
+          />
+        </div>
+
+        <div className="effect">
+          <label>
+            Bass: {settings.eq.bass} dB
+            <input
+              type="range"
+              min={-12}
+              max={12}
+              step={1}
+              value={settings.eq.bass}
+              onChange={(e) => tweak({ ...settings, eq: { ...settings.eq, bass: Number(e.currentTarget.value) } })}
+            />
+          </label>
+          <label>
+            Treble: {settings.eq.treble} dB
+            <input
+              type="range"
+              min={-12}
+              max={12}
+              step={1}
+              value={settings.eq.treble}
+              onChange={(e) => tweak({ ...settings, eq: { ...settings.eq, treble: Number(e.currentTarget.value) } })}
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="panel">
         <label>
           Microphone
-          <select value={deviceId} onChange={(e) => changeDevice(e.currentTarget.value)}>
+          <select
+            value={inputId}
+            onChange={(e) => {
+              setInputId(e.currentTarget.value);
+              if (running) start(e.currentTarget.value);
+            }}
+          >
             <option value="">Default</option>
-            {devices.map((d) => (
+            {inputs.map((d) => (
               <option key={d.deviceId} value={d.deviceId}>
                 {d.label}
               </option>
             ))}
           </select>
         </label>
+
+        <label>
+          Output for other apps (e.g. VB-Cable's "CABLE Input")
+          <select
+            value={outputId}
+            onChange={(e) => {
+              setOutputId(e.currentTarget.value);
+              run(() => engine.setOutputDevice(e.currentTarget.value));
+            }}
+          >
+            <option value={NO_OUTPUT}>None</option>
+            {outputs.map((d) => (
+              <option key={d.deviceId} value={d.deviceId}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={monitoring}
+            onChange={(e) => {
+              setMonitoring(e.currentTarget.checked);
+              engine.setMonitoring(e.currentTarget.checked);
+            }}
+          />
+          Monitor (hear myself)
+        </label>
+        {monitoring && (
+          <>
+            <label>
+              Monitor device
+              <select
+                value={monitorId}
+                onChange={(e) => {
+                  setMonitorId(e.currentTarget.value);
+                  run(() => engine.setMonitorDevice(e.currentTarget.value));
+                }}
+              >
+                <option value="">System default</option>
+                {outputs.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="hint">Use headphones, or the speakers will feed back into the mic.</p>
+          </>
+        )}
 
         <label>
           Volume: {Math.round(gain * 100)}%
@@ -90,19 +247,12 @@ function App() {
             max={2}
             step={0.01}
             value={gain}
-            onChange={(e) => changeGain(Number(e.currentTarget.value))}
+            onChange={(e) => {
+              setGain(Number(e.currentTarget.value));
+              engine.setMasterGain(Number(e.currentTarget.value));
+            }}
           />
         </label>
-
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={monitoring}
-            onChange={(e) => toggleMonitoring(e.currentTarget.checked)}
-          />
-          Monitor (hear myself)
-        </label>
-        {monitoring && <p className="hint">Use headphones, or the speakers will feed back into the mic.</p>}
 
         <button className={running ? "stop" : "start"} onClick={() => (running ? stop() : start())}>
           {running ? "Stop" : "Start microphone"}
