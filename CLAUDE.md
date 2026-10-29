@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Scaffolded from the `create-tauri-app` react-ts template; no audio code yet. The architecture below is agreed with the owner but not built. `npm test` and `npm run lint` don't exist until Vitest/ESLint are added; update Commands when they are.
+Mic capture, visualizer, pitch/robot/EQ effects, presets and output/monitor device selection are built. Distortion, bitcrusher, echo, reverb, recording/export and the Rust file-saving side are not yet. Vitest is set up (`npm test`); ESLint/Prettier are not, so `npm run lint` does not exist yet.
 
 ## What this is
 
@@ -14,12 +14,12 @@ Scaffolded from the `create-tauri-app` react-ts template; no audio code yet. The
 - **Language**: code, UI text, and commit messages in English (Conventional Commits). README is bilingual (EN + PT-BR). The owner talks to Claude in Portuguese.
 - **License**: MIT.
 
-## Commands (planned, from the Tauri React-TS template)
+## Commands
 
 - `npm run tauri dev`: run the desktop app with hot reload
 - `npm run tauri build`: build the Windows installer (`src-tauri/target/release/bundle/`)
-- `npm test`: Vitest; single test: `npx vitest run src/audio/wav.test.ts` or `npx vitest -t "<test name>"`
-- `npm run lint`: ESLint + Prettier
+- `npm test`: Vitest (`vitest run`); single test: `npx vitest run src/audio/wav.test.ts` or `npx vitest -t "<test name>"`
+- `npm run lint`: ESLint + Prettier (planned, not set up)
 
 Toolchain on this machine: Node LTS, Rust `stable-msvc`, VS 2022 Build Tools (C++), Git — all installed via winget.
 
@@ -34,7 +34,8 @@ Mic (getUserMedia) → MediaStreamSource
   → PitchShifter (AudioWorklet) → Robot (ring mod) → Distortion (WaveShaper) → Bitcrusher (AudioWorklet)
   → Echo (Delay + feedback) → Reverb (Convolver, impulse response generated in code)
   → Master Gain ─┬→ AnalyserNode → Visualizer (canvas)
-                 ├→ destination (headphone monitoring)
+                 ├→ destination (output device via ctx.setSinkId, e.g. a virtual cable; muted by default)
+                 ├→ MediaStreamDestination → <audio> with setSinkId (headphone monitoring)
                  └→ MediaStreamDestination → MediaRecorder
 ```
 
